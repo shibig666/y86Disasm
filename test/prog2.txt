@@ -1,0 +1,12 @@
+L0:
+	mrmovl (%edx),%eax
+	irmovl $1,%esi
+	addl %esi,%ecx
+	irmovl $4,%esi
+	addl %esi,%edx
+	andl %eax,%eax
+	jne L0
+	rrmovl %ebp,%esp
+	rrmovl %ecx,%eax
+	popl %ebp
+	ret

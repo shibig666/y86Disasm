@@ -1,0 +1,42 @@
+	irmovl $256,%esp
+	irmovl $256,%ebp
+	call L0
+	halt
+L0:
+	pushl %ebp
+	rrmovl %esp,%ebp
+	irmovl $4,%eax
+	pushl %eax
+	irmovl L1,%edx
+	pushl %edx
+	call L2
+	rrmovl %ebp,%esp
+	popl %ebp
+	ret
+L2:
+	pushl %ebp
+	rrmovl %esp,%ebp
+	mrmovl 8(%ebp),%ecx
+	mrmovl 12(%ebp),%edx
+	xorl %eax,%eax
+	andl %edx,%edx
+	je L3
+L4:
+	mrmovl (%ecx),%esi
+	addl %esi,%eax
+	irmovl $4,%ebx
+	addl %ebx,%ecx
+	irmovl $-1,%ebx
+	addl %ebx,%edx
+	jne L4
+L3:
+	rrmovl %ebp,%esp
+	popl %ebp
+	ret
+	
+L1:
+	.align 4
+	.long 0xd
+	.long 0xc0
+	.long 0xb00
+	.long 0xa000

@@ -1,0 +1,6 @@
+	irmovl $15,%ebx
+	rrmovl %ebx,%ecx
+L0:
+	rmmovl %ecx,-3(%ebx)
+	addl %ebx,%ecx
+	jmp L0

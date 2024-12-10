@@ -1,0 +1,8 @@
+	rmmovl %ecx,34(%ebp)
+	rmmovl %ecx,1(%ebp)
+	jg L0
+	pushl %edx
+	irmovl L0,%edx
+	irmovl L0,%edx
+	irmovl L0,%edx
+	halt
