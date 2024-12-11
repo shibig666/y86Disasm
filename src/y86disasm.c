@@ -1,3 +1,9 @@
+/*
+ * 作者: Shibig666
+ * 日期: 2024年12月11日
+ * 说明: Y86反汇编库。
+*/
+
 #include "y86disasm.h"
 #include "y86registor.h"
 #include <stdint.h>
@@ -117,7 +123,7 @@ void get_instructions(uint8_t *code, uint32_t len, instruction *ins,
       data[*data_len].value = imm_to_num(code + i);
       (*data_len)++;
       i += 4;
-      // 由于课程与案例不够，假定到程序结束都是数据
+      // 由于课程内容没涉及到与案例不够，假定到程序结束都是数据
       continue;
     }
 

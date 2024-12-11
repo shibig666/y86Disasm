@@ -1,4 +1,9 @@
-// 用于将txt转为bin文件
+/*
+ * 作者: Shibig666
+ * 日期: 2024年12月11日
+ * 说明: 文本转二进制。
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 

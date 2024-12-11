@@ -1,3 +1,9 @@
+/*
+ * 作者: Shibig666
+ * 日期: 2024年12月11日
+ * 说明: Y86反汇编器。
+ */
+
 #include "y86disasm.h"
 #include <stdint.h>
 #include <stdio.h>
