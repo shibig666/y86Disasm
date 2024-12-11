@@ -78,7 +78,6 @@ int get_instruction_len(uint8_t num) {
 
 void add_label(label labels[], int *label_len, int32_t value, type_t type) {
   // 查找是否已经有该标签
-  // printf("add label 0x%x\n", value);
   for (int i = 0; i < *label_len; i++) {
     if (labels[i].addr == (uint32_t)value) {
       return;
@@ -118,12 +117,7 @@ void get_instructions(uint8_t *code, uint32_t len, instruction *ins,
       data[*data_len].value = imm_to_num(code + i);
       (*data_len)++;
       i += 4;
-      // if (i <= len && strcmp(get_instruction_name(code[i]), "Invalid") != 0 )
-      // {
-      //   is_number = 0;
-      //   printf("%x\n",i);
-      // }
-
+      // 由于课程与案例不够，假定到程序结束都是数据
       continue;
     }
 
