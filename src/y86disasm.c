@@ -2,7 +2,6 @@
 #include "y86registor.h"
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 char *get_instruction_name(uint8_t num) {
@@ -77,220 +76,212 @@ int get_instruction_len(uint8_t num) {
     return 2;
 }
 
-void write_irmovl(uint8_t *code, char *buffer, int *label_addrs, int *len) {
-  if (code[1] / 16 != 0xF) {
-    sprintf(buffer, "Invalid");
-    printf("Invalid instruction on irmovl\n");
-  }
-  char *reg = get_reg_val(code[1] & 0xF);
-  int value = imm_to_num(code + 2);
-  for (int i = 0; i < *len; i++) {
-    if (label_addrs[i] == value) {
-      sprintf(buffer, "irmovl L%d,%s", i, reg);
-      return;
-    }
-  }
-  sprintf(buffer, "irmovl $%d,%s", value, reg);
-}
-
-void write_mrmovl(uint8_t *code, char *buffer) {
-  char *reg1 = get_reg_val(code[1] >> 4);
-  char *reg2 = get_reg_val(code[1] & 0xF);
-  int32_t value = imm_to_num(code + 2);
-  char *op = get_instruction_name(code[0]);
-  if (value == 0)
-    sprintf(buffer, "%s (%s),%s", op, reg2, reg1);
-  else
-    sprintf(buffer, "%s %d(%s),%s", op, value, reg2, reg1);
-}
-
-void write_rrmovl(uint8_t *code, char *buffer) {
-  char *reg1 = get_reg_val(code[1] >> 4);
-  char *reg2 = get_reg_val(code[1] & 0xF);
-  char *op = get_instruction_name(code[0]);
-  sprintf(buffer, "%s %s,%s", op, reg1, reg2);
-}
-
-void write_rmmovl(uint8_t *code, char *buffer) {
-  char *reg1 = get_reg_val(code[1] >> 4);
-  char *reg2 = get_reg_val(code[1] & 0xF);
-  int32_t value = imm_to_num(code + 2);
-  char *op = get_instruction_name(code[0]);
-  if (value == 0)
-    sprintf(buffer, "%s (%s),%s", op, reg2, reg1);
-  else
-    sprintf(buffer, "%s %s,%d(%s)", op, reg1, value, reg2);
-}
-
-void write_opl_or_cmovxx(uint8_t *code, char *buffer) {
-  char *reg1 = get_reg_val(code[1] >> 4);
-  char *reg2 = get_reg_val(code[1] & 0xF);
-  char *op = get_instruction_name(code[0]);
-  sprintf(buffer, "%s %s,%s", op, reg1, reg2);
-}
-
-void write_pp(uint8_t *code, char *buffer) {
-  if (code[1] % 16 != 0xF) {
-    printf("Invalid instruction on pushl or popl\n");
-  }
-  char *reg = get_reg_val(code[1] >> 4);
-  char *op = get_instruction_name(code[0]);
-  sprintf(buffer, "%s %s", op, reg);
-}
-
-void write_one_ins(uint8_t *code, char *buffer) {
-  char *op = get_instruction_name(code[0]);
-  sprintf(buffer, "%s", op);
-}
-
-void write_jxx_or_call(uint8_t *code, char *buffer, int *label_addrs,
-                       int *len) {
-  int32_t value = imm_to_num(code + 1);
-  char *op = get_instruction_name(code[0]);
-  for (int i = 0; i < *len; i++) {
-    if (label_addrs[i] == value) {
-      sprintf(buffer, "%s L%d", op, i);
-      return;
-    }
-  }
-  sprintf(buffer, "%s $%d", op, value);
-}
-
-void add_label(int *label_addrs, int *len, uint8_t *code, int code_line) {
-  int32_t value = imm_to_num(code + 1);
-  if (value >= code_line) {
-    return;
-  }
+void add_label(label labels[], int *label_len, int32_t value, type_t type) {
   // 查找是否已经有该标签
-  for (int i = 0; i < *len; i++) {
-    if (label_addrs[i] == value) {
+  // printf("add label 0x%x\n", value);
+  for (int i = 0; i < *label_len; i++) {
+    if (labels[i].addr == (uint32_t)value) {
       return;
     }
   }
-  label_addrs[*len] = value;
-  // printf("%d\n", value);
-  (*len)++;
+  printf("add label 0x%x\n", value);
+  labels[*label_len].addr = (uint32_t)value;
+  labels[*label_len].l = *label_len;
+  labels[*label_len].type = type;
+  labels[*label_len].is_label = 1;
+  (*label_len)++;
 }
 
-void disasm(uint8_t *code, char *buffer, int len) {
-  char buffer_[100];
+void get_instructions(uint8_t *code, uint32_t len, instruction *ins,
+                      number_data *data, int *ins_len, int *data_len,
+                      label *labels, int *label_len) {
   int i = 0;
-  int *label_addrs = (int *)malloc(100 * sizeof(int));
-  int *data_addrs = (int *)malloc(100 * sizeof(int));
-  int label_len = 0;
-  int data_len = 0;
-  int label_capacity = 100;
-  int data_capacity = 100;
-
+  *ins_len = 0;
+  *data_len = 0;
+  _Bool is_number = 0;
   while (i < len) {
-    uint8_t ins = code[i];
-    int ins_len = get_instruction_len(ins);
-    if ((ins >= 0x70 && ins <= 0x76) || ins == 0x80) {
-      if (label_len >= label_capacity) {
-        label_capacity *= 2;
-        label_addrs = (int *)realloc(label_addrs, label_capacity * sizeof(int));
-      }
-      add_label(label_addrs, &label_len, code + i, len);
-    } else if (ins == 0x30) {
-      if ((strcmp(get_instruction_name(code[imm_to_num(code + i + 2)]),
-                  "Invalid") == 0 &&
-           code[imm_to_num(code + i + 2) - 1] == 0x00) &&
-          imm_to_num(code + i + 2) < len) {
-        if (label_len >= label_capacity) {
-          label_capacity *= 2;
-          label_addrs =
-              (int *)realloc(label_addrs, label_capacity * sizeof(int));
+
+    // 判断是否进入数据区域
+    if (is_number == 0) {
+      for (int k = 0; k < *ins_len; k++) {
+        if (ins[k].ins == 0x30 && ins[k].value == i + 1 && code[i] == 0x00) {
+          is_number = 1;
+          i++;
+          add_label(labels, label_len, i, DATA);
+          break;
         }
-        add_label(label_addrs, &label_len, code + i + 1, len);
-        if (data_len >= data_capacity) {
-          data_capacity *= 2;
-          data_addrs = (int *)realloc(data_addrs, data_capacity * sizeof(int));
-        }
-        data_addrs[data_len] = imm_to_num(code + i + 2);
-        data_len++;
       }
     }
-    i += ins_len;
+    if (is_number) {
+      data[*data_len].addr = i;
+      data[*data_len].len = 4;
+      data[*data_len].value = imm_to_num(code + i);
+      (*data_len)++;
+      i += 4;
+      // if (i <= len && strcmp(get_instruction_name(code[i]), "Invalid") != 0 )
+      // {
+      //   is_number = 0;
+      //   printf("%x\n",i);
+      // }
+
+      continue;
+    }
+
+    if (strcmp(get_instruction_name(code[i]), "Invalid") == 0) {
+      printf("Invalid instruction 0x%x\n", i);
+      i++;
+      return;
+    }
+
+    ins[*ins_len].addr = i;
+    ins[*ins_len].ins = code[i];
+    ins[*ins_len].len = get_instruction_len(code[i]);
+    ins[*ins_len].reg1 = 0;
+    ins[*ins_len].reg2 = 0;
+    ins[*ins_len].value = 0;
+
+    if (ins[*ins_len].ins == 0x00 || ins[*ins_len].ins == 0x10 ||
+        ins[*ins_len].ins == 0x90) {
+      i += ins[*ins_len].len;
+      (*ins_len)++;
+      continue;
+    } else if (ins[*ins_len].ins == 0x20) {
+      ins[*ins_len].reg1 = code[i + 1] >> 4;
+      ins[*ins_len].reg2 = code[i + 1] & 0xF;
+    } else if (ins[*ins_len].ins == 0x30) {
+      if (code[i + 1] / 16 != 0xF) {
+        printf("Invalid instruction on irmovl\n");
+      }
+      ins[*ins_len].reg1 = code[i + 1] & 0xF;
+      ins[*ins_len].value = imm_to_num(code + i + 2);
+    } else if (ins[*ins_len].ins == 0x40) {
+      ins[*ins_len].reg1 = code[i + 1] >> 4;
+      ins[*ins_len].reg2 = code[i + 1] & 0xF;
+      ins[*ins_len].value = imm_to_num(code + i + 2);
+    } else if (ins[*ins_len].ins == 0x50) {
+      ins[*ins_len].reg1 = code[i + 1] >> 4;
+      ins[*ins_len].reg2 = code[i + 1] & 0xF;
+      ins[*ins_len].value = imm_to_num(code + i + 2);
+    } else if (ins[*ins_len].ins >= 0x60 && ins[*ins_len].ins <= 0x63) {
+      ins[*ins_len].reg1 = code[i + 1] >> 4;
+      ins[*ins_len].reg2 = code[i + 1] & 0xF;
+    } else if (ins[*ins_len].ins >= 0x70 && ins[*ins_len].ins <= 0x76 ||
+               ins[*ins_len].ins == 0x80) {
+      ins[*ins_len].value = imm_to_num(code + i + 1);
+      add_label(labels, label_len, ins[*ins_len].value, INS);
+    } else if (ins[*ins_len].ins == 0xA0 || ins[*ins_len].ins == 0xB0) {
+      if (code[i + 1] % 16 != 0xF) {
+        printf("Invalid instruction on push or popl\n");
+      }
+      ins[*ins_len].reg1 = code[i + 1] >> 4;
+    }
+    i += ins[*ins_len].len;
+    (*ins_len)++;
   }
+}
 
-  i = 0;
-  while (i < len) {
-    uint8_t ins = code[i];
-    int ins_len = get_instruction_len(ins);
+void disasm(uint8_t *code, char *buffer, uint32_t len) {
+  char buffer_[100];
+  instruction ins[100];
+  number_data data[100];
+  label labels[100];
+  int ins_len = 0;
+  int data_len = 0;
+  int label_len = 0;
+  get_instructions(code, len, ins, data, &ins_len, &data_len, labels,
+                   &label_len);
+  for (int i = 0; i < ins_len; i++) {
 
+    // 判断是否为标签
     for (int j = 0; j < label_len; j++) {
-      if (i == label_addrs[j]) {
-        sprintf(buffer_, "L%d:\n", j);
+      if (ins[i].addr == labels[j].addr) {
+        sprintf(buffer_, "L%d:\n", labels[j].l);
         strcat(buffer, buffer_);
         break;
       }
     }
 
-    for (int j = 0; j < data_len; j++) {
-      if (i == data_addrs[j]) {
-        int data_addr = data_addrs[j];
-        uint8_t ins = code[data_addr];
-        strcat(buffer, "\t.align 4\n");
-        while ((strcmp(get_instruction_name(ins), "Invalid") == 0 ||
-                ins == 0x00) &&
-               data_addr < len) {
-          sprintf(buffer_, "\t.long 0x%x\n", imm_to_num(code + data_addr));
-          strcat(buffer, buffer_);
-          data_addr += 4;
-        }
-        i = data_addr;
-        if (i >= len) {
-          free(label_addrs);
-          free(data_addrs);
-          return;
-        }
-        break;
-      }
-    }
-    if (strcmp(get_instruction_name(ins), "Invalid") == 0) {
-      printf("Invalid instruction 0x%x\n", i);
-      sprintf(buffer_, "Invalid");
-      strcat(buffer, buffer_);
-      free(label_addrs);
-      free(data_addrs);
-      return;
-    }
-
-    if (ins == 0x30)
-      write_irmovl(code + i, buffer_, label_addrs, &label_len); // 111
-    else if (ins == 0x20)
-      write_rrmovl(code + i, buffer_);
-    else if (ins == 0x40)
-      write_rmmovl(code + i, buffer_);
-    else if (ins == 0x50)
-      write_mrmovl(code + i, buffer_);
-    else if (ins >= 0x60 && ins <= 0x63)
-      write_opl_or_cmovxx(code + i, buffer_);
-    else if (ins >= 0x70 && ins <= 0x76 || ins == 0x80)
-      write_jxx_or_call(code + i, buffer_, label_addrs, &label_len);
-    else if (ins == 0xA0 || ins == 0xB0)
-      write_pp(code + i, buffer_);
-    else if (ins == 0x00) {
-      _Bool flag = 1;
+    if (ins[i].ins == 0x30) {
+      // 判断是否为数据地址
+      _Bool is_data = 0;
       for (int j = 0; j < data_len; j++) {
-        if (i + 1 == data_addrs[j]) {
-          memset(buffer_, 0, sizeof(buffer_));
-          flag = 0;
+        if ((uint32_t)ins[i].value == data[j].addr) {
+          is_data = 1;
           break;
         }
       }
-      if(flag)
-        write_one_ins(code + i, buffer_);
+      if (is_data) {
+        for (int j = 0; j < label_len; j++) {
+          if (ins[i].value == labels[j].addr) {
+            sprintf(buffer_, "\tirmovl $L%d,%s", labels[j].l,
+                    get_reg_val(ins[i].reg1));
+            break;
+          }
+        }
+      } else {
+        sprintf(buffer_, "\tirmovl $%d,%s", ins[i].value,
+                get_reg_val(ins[i].reg1));
+      }
+    } else if (ins[i].ins >= 0x70 && ins[i].ins <= 0x76 || ins[i].ins == 0x80) {
+      _Bool is_label = 0;
+      for (int j = 0; j < ins_len; j++) {
+        if ((uint32_t)ins[i].value == ins[j].addr) {
+          is_label = 1;
+          break;
+        }
+      }
+      if (is_label) {
+        for (int j = 0; j < label_len; j++) {
+          if (ins[i].value == labels[j].addr) {
+            sprintf(buffer_, "\t%s L%d", get_instruction_name(ins[i].ins),
+                    labels[j].l);
+            break;
+          }
+        }
+      } else {
+        sprintf(buffer_, "\t%s %d", get_instruction_name(ins[i].ins),
+                ins[i].value);
+      }
+    } else if (ins[i].ins == 0x40) {
+      if (ins[i].value == 0)
+        sprintf(buffer_, "\trmmovl %s,(%s)", get_reg_val(ins[i].reg1),
+                get_reg_val(ins[i].reg2));
+      else
+        sprintf(buffer_, "\trmmovl %s,%d(%s)", get_reg_val(ins[i].reg1),
+                ins[i].value, get_reg_val(ins[i].reg2));
+    } else if (ins[i].ins == 0x50) {
+      if (ins[i].value == 0)
+        sprintf(buffer_, "\tmrmovl (%s),%s", get_reg_val(ins[i].reg2),
+                get_reg_val(ins[i].reg1));
+      else
+        sprintf(buffer_, "\tmrmovl %d(%s),%s", ins[i].value,
+                get_reg_val(ins[i].reg2), get_reg_val(ins[i].reg1));
+    } else if (ins[i].ins >= 0x60 && ins[i].ins <= 0x63) {
+      sprintf(buffer_, "\t%s %s,%s", get_instruction_name(ins[i].ins),
+              get_reg_val(ins[i].reg1), get_reg_val(ins[i].reg2));
+    } else if (ins[i].ins == 0xA0 || ins[i].ins == 0xB0) {
+      sprintf(buffer_, "\t%s %s", get_instruction_name(ins[i].ins),
+              get_reg_val(ins[i].reg1));
+    } else if (ins[i].ins == 0x20) {
+      sprintf(buffer_, "\t%s %s,%s", get_instruction_name(ins[i].ins),
+              get_reg_val(ins[i].reg1), get_reg_val(ins[i].reg2));
+    } else {
+      sprintf(buffer_, "\t%s", get_instruction_name(ins[i].ins));
     }
-    else
-      write_one_ins(code + i, buffer_);
-
-    strcat(buffer, "\t");
     strcat(buffer, buffer_);
     strcat(buffer, "\n");
-    i += ins_len;
   }
 
-  free(label_addrs);
-  free(data_addrs);
+  for (int i = 0; i < data_len; i++) {
+    for (int j = 0; j < label_len; j++) {
+      if (data[i].addr == labels[j].addr) {
+        sprintf(buffer_, "L%d:\n", labels[j].l);
+        strcat(buffer, buffer_);
+        strcat(buffer, "\t.align 4\n");
+        break;
+      }
+    }
+    sprintf(buffer_, "\t.long 0x%x\n", data[i].value);
+    strcat(buffer, buffer_);
+  }
 }

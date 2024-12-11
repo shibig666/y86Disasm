@@ -5,13 +5,29 @@
 
 char *get_instruction_name(uint8_t num);
 int get_instruction_len(uint8_t num);
-void write_irmovl(uint8_t *code, char *buffer, int *label_addrs, int *len);
-void write_rmmovl(uint8_t *code, char *buffer);
-void write_mrmovl(uint8_t *code, char *buffer);
-void write_opl_or_cmovxx(uint8_t *code, char *buffer);
-void write_pp(uint8_t *code, char *buffer);
-void write_one_ins(uint8_t *code, char *buffer);
-void write_jxx_or_call(uint8_t *code, char *buffer, int *label_addrs, int *len);
-void disasm(uint8_t *code, char *buffer, int len);
+void disasm(uint8_t *code, char *buffer, uint32_t len);
+
+typedef enum { INS, DATA } type_t;
+typedef struct {
+  uint32_t addr;
+  uint8_t ins;
+  int len;
+  uint8_t reg1;
+  uint8_t reg2;
+  int32_t value;
+} instruction;
+
+typedef struct {
+  uint32_t addr;
+  int len;
+  int32_t value;
+} number_data;
+
+typedef struct {
+  uint32_t addr;
+  int l;
+  type_t type;
+  _Bool is_label;
+} label;
 
 #endif 
