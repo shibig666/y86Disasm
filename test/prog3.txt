@@ -7,34 +7,33 @@ L0:
 	rrmovl %esp,%ebp
 	irmovl $4,%eax
 	pushl %eax
-	irmovl L1,%edx
+	irmovl $L4,%edx
 	pushl %edx
-	call L2
+	call L1
 	rrmovl %ebp,%esp
 	popl %ebp
 	ret
-L2:
+L1:
 	pushl %ebp
 	rrmovl %esp,%ebp
 	mrmovl 8(%ebp),%ecx
 	mrmovl 12(%ebp),%edx
 	xorl %eax,%eax
 	andl %edx,%edx
-	je L3
-L4:
+	je L2
+L3:
 	mrmovl (%ecx),%esi
 	addl %esi,%eax
 	irmovl $4,%ebx
 	addl %ebx,%ecx
 	irmovl $-1,%ebx
 	addl %ebx,%edx
-	jne L4
-L3:
+	jne L3
+L2:
 	rrmovl %ebp,%esp
 	popl %ebp
 	ret
-	
-L1:
+L4:
 	.align 4
 	.long 0xd
 	.long 0xc0

@@ -1,8 +1,10 @@
-	rmmovl %ecx,34(%ebp)
 	rmmovl %ecx,1(%ebp)
-	jg L0
+	jg 1
 	pushl %edx
-	irmovl L0,%edx
-	irmovl L0,%edx
-	irmovl L0,%edx
+	irmovl $1,%edx
+	rmmovl %ecx,32649217(%ebp)
 	halt
+	halt
+	halt
+	halt
+	irmovl $1,%edx
