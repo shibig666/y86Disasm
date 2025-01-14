@@ -1,74 +1,4 @@
-# Y86 Disassembler
-
-**CFS2101-FNA-YEAR-2425 Assignment** by **Yuxin Shi**
-
-## Introduction
-
-This is a Y86 disassembler that converts Y86 binary programs into readable assembly code.
-
-### Features
-
-- Disassembles the Y86 instruction set
-- Disassembles register operations
-- Disassembles immediate values
-- Generates labels for better readability
-- Recognizes and differentiates data areas
-
-## Usage
-
-### Build
-
-#### Using `make` to build
-
-```bash
-make
-```
-
-#### Using `CMake` to build
-
-```bash
-mkdir build && cd build
-cmake ..
-make
-```
-
-### Run
-
-#### Disassembler Program `y86disassembler`
-
-Usage:
-
-```bash
-Usage: ./y86disassembler <y86 input file> <y86 asm output file>
-```
-
-- `<y86 input file>`: The input Y86 binary file
-- `<y86 asm output file>`: The output Y86 assembly file
-
-#### Hexadecimal to Binary Converter `hex2bin`
-
-Usage:
-
-```bash
-Usage: ./hex2bin <input file> <output file>
-```
-
-- `<input file>`: The input hexadecimal text file
-- `<output file>`: The output binary file
-
-## Author
-
-**Yuxin Shi**
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](https://chatgpt.com/c/LICENSE) file for more details.
-
-------
-
 # Y86 反汇编程序
-
-**CFS2101-FNA-YEAR-2425 作业** 由 **Yuxin Shi** 完成
 
 ## 介绍
 
@@ -126,7 +56,7 @@ Usage: ./hex2bin <input file> <output file>
 
 ## 作者
 
-**Yuxin Shi**
+**shibig666**
 
 ## 许可
 
